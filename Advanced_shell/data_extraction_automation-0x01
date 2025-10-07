@@ -1,0 +1,20 @@
+#!/bin/bash
+# Script: data_extraction_automation-0x01
+# Description: Extracts name, height, weight, and type from data.json using jq, awk, and sed
+# Author: Owuor
+
+# Ensure data.json exists
+if [ ! -f "data.json" ]; then
+    echo "❌ Error: data.json not found! Please run apiAutomation-0x00 first."
+    exit 1
+fi
+
+# Extract data using jq
+name=$(jq -r '.name' data.json | sed 's/.*/\u&/')
+height=$(jq -r '.height' data.json | awk '{printf "%.1f", $1 / 10}')   # decimeters → meters
+weight=$(jq -r '.weight' data.json | awk '{printf "%.0f", $1 / 10}')   # hectograms → kilograms
+type=$(jq -r '.types[0].type.name' data.json | sed 's/.*/\u&/')
+
+# Format and print
+echo "$name is of type $type, weighs ${weight}kg, and is ${height}m tall."
+
