@@ -33,4 +33,67 @@ for pokemon in "${POKEMONS[@]}"; do
     # Delay to handle rate limiting
     sleep 2
 done
+#!/bin/bash
+# Script: batchProcessing-0x02
+# Description: Fetches data for multiple Pokémon with retry and error handling
+# Author: Owuor
+
+# Directory to store Pokémon data
+DATA_DIR="pokemon_data"
+mkdir -p "$DATA_DIR"
+
+# File for logging errors
+ERROR_LOG="errors.txt"
+> "$ERROR_LOG"  # Clear previous errors
+
+# List of Pokémon
+POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Base API URL
+BASE_URL="https://pokeapi.co/api/v2/pokemon"
+
+# Max retry attempts
+MAX_RETRIES=3
+
+# Function to fetch data for a single Pokémon
+fetch_pokemon() {
+    local pokemon=$1
+    local attempt=1
+    local success=false
+
+    echo "Fetching data for ${pokemon}..."
+
+    while [ $attempt -le $MAX_RETRIES ]; do
+        # Perform API request
+        response=$(curl -s -w "%{http_code}" -o "${DATA_DIR}/${pokemon}.json" "${BASE_URL}/${pokemon}")
+        status_code=${response: -3}
+
+        # Check if successful
+        if [ "$status_code" -eq 200 ]; then
+            echo "Saved data to ${DATA_DIR}/${pokemon}.json ✅"
+            success=true
+            break
+        else
+            echo "Attempt $attempt failed for ${pokemon} (Status: $status_code)"
+            ((attempt++))
+            sleep 2  # brief wait before retry
+        fi
+    done
+
+    # If all attempts fail, log error
+    if [ "$success" = false ]; then
+        echo "❌ Failed to fetch ${pokemon} after ${MAX_RETRIES} attempts." | tee -a "$ERROR_LOG"
+        rm -f "${DATA_DIR}/${pokemon}.json"  # remove partial file
+    fi
+}
+
+# Loop through Pokémon list
+for pokemon in "${POKEMONS[@]}"; do
+    fetch_pokemon "$pokemon"
+    sleep 2  # rate limiting delay
+done
+
+echo ""
+echo "Process complete."
+echo "Error log saved at: $ERROR_LOG (if any failures occurred)"
 
