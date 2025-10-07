@@ -1,0 +1,49 @@
+#!/bin/bash
+# Task 5: Parallel Data Fetching
+# File: batchProcessing-0x04
+# Description: Fetch data for multiple Pokémon in parallel and save as JSON files.
+
+POKEMONS=("Bulbasaur" "Ivysaur" "Venusaur" "Charmander" "Charmeleon")
+API_URL="https://pokeapi.co/api/v2/pokemon"
+
+fetch_pokemon_data() {
+    local pokemon_name=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local output_file="${pokemon_name}.json"
+    local retries=3
+    local count=0
+    local success=false
+
+    while [ $count -lt $retries ]; do
+        response=$(curl -s -o "$output_file" -w "%{http_code}" "$API_URL/$pokemon_name")
+        if [ "$response" -eq 200 ]; then
+            echo "✅ Successfully fetched data for $1"
+            success=true
+            break
+        else
+            echo "⚠️ Failed to fetch $1 (attempt $((count + 1))/$retries)"
+            count=$((count + 1))
+            sleep 2
+        fi
+    done
+
+    if [ "$success" = false ]; then
+        echo "❌ Error: Failed to fetch data for $1 after $retries attempts" >> error_log.txt
+    fi
+}
+
+# Clear previous logs
+> error_log.txt
+
+echo "Fetching Pokémon data in parallel..."
+for pokemon in "${POKEMONS[@]}"; do
+    fetch_pokemon_data "$pokemon" &
+done
+
+# Wait for all background processes to finish
+wait
+
+echo "✅ All parallel fetch operations completed."
+
+# Optional: display summary
+ls *.json 2>/dev/null && echo "JSON files generated successfully."
+
