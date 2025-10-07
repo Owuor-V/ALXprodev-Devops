@@ -70,4 +70,33 @@ done
 wait
 
 echo "All data fetched successfully."
+#!/bin/bash
+# File: batchProcessing-0x04
+# Description: Fetch Pokémon data in parallel and wait for all processes to complete.
+
+POKEMONS=("Bulbasaur" "Ivysaur" "Venusaur" "Charmander" "Charmeleon")
+API_URL="https://pokeapi.co/api/v2/pokemon"
+
+# Create output directory if not exists
+mkdir -p pokemon_data
+
+fetch_pokemon_data() {
+    local name=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local output_file="pokemon_data/${name}.json"
+    echo "Fetching data for $name..."
+    curl -s -o "$output_file" "$API_URL/$name"
+    echo "Saved data to $output_file"
+}
+
+echo "Starting parallel data fetching..."
+
+# Run all fetches in background
+for pokemon in "${POKEMONS[@]}"; do
+    fetch_pokemon_data "$pokemon" &
+done
+
+# Wait for all background processes
+wait
+
+echo "All data fetched successfully."
 
