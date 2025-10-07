@@ -1,0 +1,47 @@
+#!/bin/bash
+# Script: summaryData-0x03
+# Description: Generates a CSV report summarizing Pokémon data with average height and weight
+# Author: Owuor
+
+DATA_DIR="pokemon_data"
+OUTPUT_FILE="pokemon_report.csv"
+
+# Check if data directory exists
+if [ ! -d "$DATA_DIR" ]; then
+    echo "❌ Error: Directory '$DATA_DIR' not found! Run batchProcessing-0x02 first."
+    exit 1
+fi
+
+# Create or overwrite the CSV file
+echo "Name,Height (m),Weight (kg)" > "$OUTPUT_FILE"
+
+# Extract name, height, and weight from each JSON file
+for file in "$DATA_DIR"/*.json; do
+    # Skip if directory is empty
+    [ -e "$file" ] || { echo "No JSON files found in $DATA_DIR"; exit 1; }
+
+    name=$(jq -r '.name' "$file" | sed 's/.*/\u&/')
+    height=$(jq -r '.height' "$file" | awk '{printf "%.1f", $1 / 10}')
+    weight=$(jq -r '.weight' "$file" | awk '{printf "%.1f", $1 / 10}')
+
+    echo "${name},${height},${weight}" >> "$OUTPUT_FILE"
+done
+
+# Display report header
+echo "CSV Report generated at: $OUTPUT_FILE"
+echo ""
+
+# Display report content
+cat "$OUTPUT_FILE"
+echo ""
+
+# Calculate and display averages using awk
+awk -F, 'NR>1 {h+=$2; w+=$3; count++} 
+END {
+    if (count > 0) {
+        printf "\nAverage Height: %.2f m\nAverage Weight: %.2f kg\n", h/count, w/count
+    } else {
+        print "No data found."
+    }
+}' "$OUTPUT_FILE"
+
